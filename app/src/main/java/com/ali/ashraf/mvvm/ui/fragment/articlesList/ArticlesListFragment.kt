@@ -7,9 +7,8 @@ import androidx.fragment.app.Fragment
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
-import android.widget.ProgressBar
 import android.widget.TextView
-import android.widget.Toast
+import androidx.appcompat.widget.AppCompatButton
 import androidx.lifecycle.Observer
 import androidx.lifecycle.ViewModelProvider
 import androidx.recyclerview.widget.LinearLayoutManager
@@ -21,6 +20,7 @@ import com.ali.ashraf.mvvm.ui.activity.MainActivity
 import com.ali.ashraf.mvvm.utils.Resource
 import com.ali.ashraf.mvvm.utils.Status
 import com.ali.ashraf.mvvm.viewmodel.MainViewModel
+import com.builbee.app.util.Internet
 import com.builbee.app.util.Loading
 import com.example.codechallenge_plentina.util.Alert
 
@@ -31,6 +31,7 @@ class ArticlesListFragment : Fragment() {
 
     private lateinit var rvArticles:RecyclerView
     private lateinit var tvPlaceholder: TextView
+
     private lateinit var mainViewModel: MainViewModel
 
     private var observer : Observer<Resource<GetArticlesResponse>>? = null
@@ -47,20 +48,38 @@ class ArticlesListFragment : Fragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
         setupUI(view)
-
-        setupViewModel()
+        setUpRecycler()
+        initViewModel()
 
         if(MainActivity.mListArticles.isEmpty()){
-            removeObserver()
-            setupObserver()
+            getArticlesFromServer()
         }
-
-        setUpRecycler()
     }
 
     private fun setupUI(view: View) {
         rvArticles = view.findViewById(R.id.rvArticles)
         tvPlaceholder = view.findViewById(R.id.tvPlaceholder)
+    }
+
+    private fun setUpRecycler() {
+        rvArticles.setHasFixedSize(true)
+        rvArticles.layoutManager = LinearLayoutManager(requireActivity())
+        articlesListAdapter = ArticlesListAdapter(requireActivity())
+        rvArticles.adapter = articlesListAdapter
+    }
+
+    private fun initViewModel() {
+        mainViewModel = ViewModelProvider(this)[MainViewModel::class.java]
+
+    }
+
+    private fun getArticlesFromServer() {
+        if(!Internet.isAvailable(requireActivity())){
+            Alert.show(requireActivity(), "Error", requireActivity().resources.getString(R.string.no_internet))
+            return
+        }
+
+        setupObserver()
     }
 
     private fun setupObserver() {
@@ -72,6 +91,7 @@ class ArticlesListFragment : Fragment() {
                 }
                 Status.SUCCESS -> {
                     Loading.hideLoading()
+                    tvPlaceholder.visibility = View.GONE
                     it.data?.let { articles -> renderList(articles.results) }
                 }
                 Status.NO_DATA -> {
@@ -79,10 +99,6 @@ class ArticlesListFragment : Fragment() {
                     tvPlaceholder.visibility = View.VISIBLE
                 }
                 Status.ERROR -> {
-                    Loading.hideLoading()
-                    Alert.show(requireActivity(), "Error", it.message)
-                }
-                Status.NETWORK_ERROR -> {
                     Loading.hideLoading()
                     Alert.show(requireActivity(), "Error", it.message)
                 }
@@ -106,16 +122,5 @@ class ArticlesListFragment : Fragment() {
         }
     }
 
-    private fun setupViewModel() {
-        mainViewModel = ViewModelProvider(this)[MainViewModel::class.java]
-
-    }
-
-    private fun setUpRecycler() {
-        rvArticles.setHasFixedSize(true)
-        rvArticles.layoutManager = LinearLayoutManager(requireActivity())
-        articlesListAdapter = ArticlesListAdapter(requireActivity())
-        rvArticles.adapter = articlesListAdapter
-    }
 
 }

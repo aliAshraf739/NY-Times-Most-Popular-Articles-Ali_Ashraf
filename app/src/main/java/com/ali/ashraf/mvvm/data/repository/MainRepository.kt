@@ -23,10 +23,6 @@ class MainRepository(val application: Application) {
     private val volumesResponseLiveData: MutableLiveData<Resource<GetArticlesResponse>> = MutableLiveData()
 
     fun getArticlesFromServer(){
-        if(!Internet.isAvailable(application)){
-            volumesResponseLiveData.postValue(Resource(Status.NETWORK_ERROR, null, application.resources.getString(R.string.no_internet)))
-            return
-        }
         volumesResponseLiveData.postValue(Resource(Status.LOADING, null, ""))
         val call: Call<GetArticlesResponse>? = RestApi.getService()?.getMostPopularArticles(Constants.API_KEY)
         call?.enqueue(object : Callback<GetArticlesResponse> {
@@ -40,9 +36,11 @@ class MainRepository(val application: Application) {
                             volumesResponseLiveData.postValue(Resource(Status.NO_DATA, null, ""))
                         }
                     }else{
+                        Log.e(TAG, "onResponse: ")
                         volumesResponseLiveData.postValue(Resource(Status.ERROR, null, application.resources.getString(R.string.something_went_wrong)))
                     }
                 } else {
+                    Log.e(TAG, "onResponse: ")
                     volumesResponseLiveData.postValue(Resource(Status.ERROR, null, application.resources.getString(R.string.something_went_wrong)))
                 }
             }
